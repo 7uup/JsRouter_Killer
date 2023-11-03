@@ -91,10 +91,6 @@ def append_to_url(url, dot_count, key_value_pairs,deters,b):
         elif dot_count == 2:
             url += f"/{key_value_pairs[0]}.{key_value_pairs[1]}.js"
             urls.append(url)
-        elif key_value_pairs[1] or key_value_pairs[0]=="app":
-            search_result_one = search_TwoList(key_value_pairs[0], b)
-            search_result_two = search_TwoList2(search_result_one[0], b)
-
     else:
         if dot_count == 1:
             url += f"/{key_value_pairs[1]}.async.js"
