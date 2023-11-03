@@ -1,5 +1,3 @@
-import sys
-
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -8,14 +6,20 @@ from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 
 
-def url_filter(js_url):
-    pattern = r'^https?://'
-    if not re.search(pattern, js_url):
-        js_url = 'https://' + js_url.lstrip('/')
+def url_filter(js_url,url):
+    patterns = r"^(?!:\/\/)([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}$"
+    if not re.search(patterns, js_url):
+        if "./" in js_url:
+            js_url=js_url.replace("./","")
+            js_url=url+js_url
+        else:
+            parsed_url = urllib.urlparse(url)
+            root_path = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            js_url=root_path+js_url
     return js_url
 
-
 def extract_js_files(url):
+    # testcookie={"Cookie":"SESSION=7f5d50a0-b7f3-4b53-8dd2-5c16dca32b1e"}
     response = requests.get(url)
     if response.status_code != 200:
         print("Failed to retrieve the webpage.")
@@ -27,8 +31,8 @@ def extract_js_files(url):
     return js_files
 
 
-def process_js_file(js_url):
-    js_url = url_filter(js_url)
+def process_js_file(js_url,url):
+    js_url = url_filter(js_url,url)
     response = requests.get(js_url)
     if response.status_code != 200:
         print("Failed to retrieve the JavaScript file:", js_url)
@@ -54,8 +58,8 @@ def extract_content(js_content):
         return [((0, 0), False)]
 
 
-def remove_last_path_segment(url):
-    url = url_filter(url)
+def remove_last_path_segment(url,urls):
+    url = url_filter(url,urls)
     parsed_url = urllib.parse.urlparse(url)
     path = parsed_url.path
     path_segments = path.split('/')
@@ -66,8 +70,8 @@ def remove_last_path_segment(url):
     return new_url
 
 
-def count_dots(url):
-    url = url_filter(url)
+def count_dots(url,urls):
+    url = url_filter(url,urls)
     pattern = r'https?://[^/]+(.+)'
     match = re.search(pattern, url)
     if match:
@@ -125,16 +129,15 @@ def search_TwoList2(str1, b):
                     matches.append(text)
     return matches
 
-
 def check_url(url):
-    status = requests.session().head(url).status_code
+    status = requests.head(url).status_code
     if status == 200:
         return (url, status)
     else:
         return None
 
 if __name__ == '__main__':
-    print("JsRouter_killer")
+    print("WebPack_Scan_hll_v1.2bate")
     pattern = r'[^a-zA-Z0-9_.]'
     url=sys.argv[1]
     js_files = extract_js_files(url)
@@ -142,7 +145,7 @@ if __name__ == '__main__':
     for js_file in js_files:
         js_url = str(js_file)
         try:
-            js_content = process_js_file(js_url)
+            js_content = process_js_file(js_url,url)
         except:
             continue
         matches_deters = set(extract_content(js_content))
@@ -153,11 +156,12 @@ if __name__ == '__main__':
                 c.append(match[1])
                 b.append(c)
         for matchs,deters in tqdm(matches_deters,desc="Processing JS files",position=0, leave=True):
-            new_url = remove_last_path_segment(js_url)
-            dot_count = count_dots(js_url)
+            new_url = remove_last_path_segment(js_url,url)
+            dot_count = count_dots(js_url,url)
             if dot_count > 3:
                 continue
             new_url = append_to_url(new_url, dot_count, matchs, deters, b)
+            # print(new_url)
             if len(new_url)>1:
                 with ThreadPoolExecutor() as executor:
                     results = list(executor.map(check_url, new_url))
@@ -170,3 +174,5 @@ if __name__ == '__main__':
                     print(new_url[0])
             else:
                 pass
+
+
