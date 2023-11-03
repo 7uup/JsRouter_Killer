@@ -4,6 +4,7 @@ import re
 import urllib.parse
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+import sys
 
 
 def url_filter(js_url,url):
