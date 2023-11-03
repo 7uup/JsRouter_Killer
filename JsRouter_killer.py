@@ -10,7 +10,7 @@ def save_content_to_file(content,filename):
 
 
 def url_filter(js_url,url):
-    patterns = r"^(?!:\/\/)([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}$"
+    patterns = r"https?://[^/]+(/[^/?#]+)"
     if not re.search(patterns, js_url):
         if "./" in js_url:
             js_url=js_url.replace("./","")
@@ -19,6 +19,8 @@ def url_filter(js_url,url):
             parsed_url = urllib.urlparse(url)
             root_path = f"{parsed_url.scheme}://{parsed_url.netloc}"
             js_url=root_path+js_url
+    else:
+        return js_url
     return js_url
 
 def extract_js_files(url):
