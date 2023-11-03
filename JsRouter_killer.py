@@ -1,10 +1,12 @@
-import requests
 from bs4 import BeautifulSoup
-import re
-import urllib.parse
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
-import sys
+import sys,re,requests,urllib.parse
+
+
+def save_content_to_file(content,filename):
+    with open(filename, 'a', encoding='utf-8') as file:
+        file.write(content+"\n")
 
 
 def url_filter(js_url,url):
@@ -20,7 +22,6 @@ def url_filter(js_url,url):
     return js_url
 
 def extract_js_files(url):
-    # testcookie={"Cookie":"SESSION=7f5d50a0-b7f3-4b53-8dd2-5c16dca32b1e"}
     response = requests.get(url)
     if response.status_code != 200:
         print("Failed to retrieve the webpage.")
@@ -54,7 +55,6 @@ def extract_content(js_content):
         matches = re.findall(pattern, js_content)
 
         return [(match, deter) for match in matches]
-        # return  matches
     else:
         return [((0, 0), False)]
 
@@ -91,6 +91,10 @@ def append_to_url(url, dot_count, key_value_pairs,deters,b):
         elif dot_count == 2:
             url += f"/{key_value_pairs[0]}.{key_value_pairs[1]}.js"
             urls.append(url)
+        elif key_value_pairs[1] or key_value_pairs[0]=="app":
+            search_result_one = search_TwoList(key_value_pairs[0], b)
+            search_result_two = search_TwoList2(search_result_one[0], b)
+
     else:
         if dot_count == 1:
             url += f"/{key_value_pairs[1]}.async.js"
@@ -138,9 +142,10 @@ def check_url(url):
         return None
 
 if __name__ == '__main__':
-    print("WebPack_Scan_hll_v1.2bate")
+    print("JsRouter_killer")
     pattern = r'[^a-zA-Z0-9_.]'
     url=sys.argv[1]
+    filename = sys.argv[2]
     js_files = extract_js_files(url)
     b=[]
     for js_file in js_files:
@@ -150,13 +155,15 @@ if __name__ == '__main__':
         except:
             continue
         matches_deters = set(extract_content(js_content))
+        progress_bar = tqdm(total=len(matches_deters), desc="Processing JS files", position=0, leave=True)
         for match, deter in matches_deters:
             if str(match[1]) != "":
                 c = []
                 c.append(match[0])
                 c.append(match[1])
                 b.append(c)
-        for matchs,deters in tqdm(matches_deters,desc="Processing JS files",position=0, leave=True):
+        for matchs,deters in matches_deters:
+            progress_bar.set_postfix(current_match=matchs, current_deter=deters)
             new_url = remove_last_path_segment(js_url,url)
             dot_count = count_dots(js_url,url)
             if dot_count > 3:
@@ -164,16 +171,22 @@ if __name__ == '__main__':
             new_url = append_to_url(new_url, dot_count, matchs, deters, b)
             # print(new_url)
             if len(new_url)>1:
-                with ThreadPoolExecutor() as executor:
+                with ThreadPoolExecutor(max_workers=100) as executor:
                     results = list(executor.map(check_url, new_url))
                 for result in results:
                     if result:
-                        print(result[0])
+                        # print(result[0])
+                        save_content_to_file(result[0],filename)
             elif "#" not in new_url[0]:
                 status = requests.head(new_url[0]).status_code
                 if status == 200:
-                    print(new_url[0])
+                    # print(new_url[0])
+                    save_content_to_file(new_url[0],filename)
             else:
                 pass
+            progress_bar.update(1)
+        progress_bar.close()
 
 
+
+    print(f"Content saved")
