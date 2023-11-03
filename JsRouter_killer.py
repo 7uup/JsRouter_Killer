@@ -134,7 +134,7 @@ def check_url(url):
         return None
 
 if __name__ == '__main__':
-    print("WebPack_Scan_hll_v1.2bate")
+    print("JsRouter_killer")
     pattern = r'[^a-zA-Z0-9_.]'
     url=sys.argv[1]
     js_files = extract_js_files(url)
